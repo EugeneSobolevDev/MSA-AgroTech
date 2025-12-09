@@ -1,0 +1,97 @@
+@startuml
+title C4: Сервис камер - уровень кода
+  
+class CamControlService {
+  - registry: Registry
+  - healthMonitor: HealthMonitor
+  - configManager: ConfigManager
+  
+  + connect(cameraConfig: CameraConfig): Camera
+  + disconnect(cameraId: String): void
+  + getStatus(cameraId: String): CameraStatus
+  + restart(cameraId: String): boolean
+  + getAllActiveCameras(): List<Camera>
+}
+  
+class Registry {
+  - cameras: ConcurrentHashMap<String, Camera>
+  - configs: Map<String, Config>
+  
+  + register(config: CameraConfig): String
+  + unregister(cameraId: String): void
+  + getCamera(cameraId: String): Optional<Camera>
+  + updateCameraStatus(cameraId: String, status: CameraStatus): void
+}
+  
+class Camera {
+  + cameraId: String
+  + streamUrl: String
+  + protocol: StreamProtocol
+  + status: ConnectionStatus
+  + resolution: Resolution
+  
+  + connect(): boolean
+  + disconnect(): void
+  + isConnected(): boolean
+}
+  
+class HealthMonitor {
+  - healthCheckInterval: Duration
+  - failedThreshold: int
+  
+  + startMonitoring(): void
+  + stopMonitoring(): void
+  + checkHealth(cameraId: String): HealthStatus
+  + getHealthMetrics(): Map<String, HealthMetrics>
+}
+  
+class ConfigManager {
+  - configCache: Cache<String, Config>
+  
+  + loadConfig(cameraId: String): Config
+  + updateConfig(cameraId: String, config: Config): void
+}
+
+class Config {
+  + cameraId: String
+  + streamUrl: String
+  + protocol: StreamProtocol
+  + credentials: Credentials
+  + resolution: Resolution
+  + healthCheckEnabled: boolean
+}
+
+enum StreamProtocol {
+  RTMP
+  WebRTC
+}
+  
+enum ConnectionStatus {
+  CONNECTED
+  CONNECTING
+  DISCONNECTED
+  ERROR
+}
+
+class HealthStatus {
+  + cameraId: String
+  + status: ConnectionStatus
+  + uptime: Duration
+  + timestamp: Instant
+  
+  + isHealthy(): boolean
+}
+
+
+CamControlService *-- Registry
+CamControlService *-- HealthMonitor
+CamControlService *-- ConfigManager
+
+ConfigManager --> Config : использует
+Registry o-- Camera
+HealthMonitor --> HealthStatus : создает
+
+Camera ..> StreamProtocol : использует
+Camera ..> ConnectionStatus : использует
+
+@enduml
